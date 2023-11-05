@@ -1,6 +1,7 @@
 import { Game, Move } from "boardgame.io";
 import { INVALID_MOVE } from "boardgame.io/core";
-import { Vector } from "../util/vector";
+import { Vector, vectorCompare } from "../util/vector";
+import getValidMoves from "./getValidMoves";
 
 /* 
 Pawns: P
@@ -47,14 +48,10 @@ export type Piece = {
   team: "0" | "1" | "2" | "3";
 };
 
-const movePiece: Move<G> = ({ G, playerID }, from: Vector, to: Vector) => {
-  const fromPiece = G.cells[from.x][from.y];
+const movePiece: Move<G> = ({ G, ctx }, from: Vector, to: Vector) => {
+  const validMoves = getValidMoves(from, G, ctx);
 
-  const toPiece = G.cells[to.x][to.y];
-
-  if (fromPiece == null) return INVALID_MOVE;
-  if (fromPiece.team !== playerID) return INVALID_MOVE;
-  if (toPiece?.team === playerID) return INVALID_MOVE;
+  if (!validMoves.some((move) => vectorCompare(move, to))) return INVALID_MOVE;
 
   G.cells[to.x][to.y] = G.cells[from.x][from.y];
   G.cells[from.x][from.y] = null;
