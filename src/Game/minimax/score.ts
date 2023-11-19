@@ -1,7 +1,7 @@
 import { max, min } from "../../util/array";
 import { Vector } from "../../util/vector";
 import { G, Team, piecePoints } from "../game";
-import { Node, getNode } from "./node";
+import { Node } from "./node";
 
 export function getScore(g: G, team: Team) {
   if (!g.playerStates[team].alive) return -Infinity;
@@ -18,32 +18,31 @@ export function getScore(g: G, team: Team) {
   return g.playerStates[team].points + boardScore;
 }
 
-export function getBranchScore(node: Node, calculatingPlayer: Team): number {
-  if (node.children.length == 0)
-    return getScore(node.gameState, calculatingPlayer);
+export function calculateBranchScore(
+  node: Node,
+  calculatingPlayer: Team
+): void {
+  if (node.children.length == 0) {
+    node.score = getScore(node.gameState, calculatingPlayer);
+    return;
+  }
 
-  if (node.currentPlayer == calculatingPlayer)
-    return max(node.children, (node) =>
-      getBranchScore(node, calculatingPlayer)
-    )[1];
-  else
-    return min(node.children, (node) =>
-      getBranchScore(node, calculatingPlayer)
-    )[1];
+  node.children.forEach((child) =>
+    calculateBranchScore(child, calculatingPlayer)
+  );
+  if (node.currentPlayer == calculatingPlayer) {
+    const score = max(node.children, (child) => child.score)[1];
+    node.score = score;
+  } else {
+    const score = min(node.children, (child) => child.score)[1];
+    node.score = score;
+  }
 }
 
-export function getBestMove(
-  state: G,
-  team: Team
-): { from: Vector; to: Vector } | null {
-  const rootNode = getNode(state, team);
-  console.log(rootNode);
-  if (rootNode.children.length == 0) return null;
+export function getBestMove(tree: Node): { from: Vector; to: Vector } | null {
+  if (tree.children.length == 0) return null;
 
-  const maxNode = max(rootNode.children, (child) =>
-    getBranchScore(child, team)
-  );
-  console.log(maxNode);
+  const maxNode = max(tree.children, (child) => child.score);
 
   if (maxNode[0] == null) return null;
 

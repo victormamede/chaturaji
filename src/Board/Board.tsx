@@ -1,5 +1,5 @@
 import { BoardProps } from "boardgame.io/dist/types/packages/react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { G, PlayerState, Team } from "../Game/game";
 import { Vector, vectorCompare } from "../util/vector";
 import {
@@ -24,8 +24,8 @@ import Bishop from "../assets/pieces/bishop.svg?react";
 import King from "../assets/pieces/king.svg?react";
 import Pawn from "../assets/pieces/pawn.svg?react";
 import { Ctx } from "boardgame.io";
-import { getBestMove } from "../Game/minimax/score";
 import { StarIcon } from "@chakra-ui/icons";
+import MyWorker from "../Game/minimax/worker?worker";
 
 const teamColors = {
   "0": "red",
@@ -42,6 +42,10 @@ const pieceToSVG = {
   P: <Pawn />,
 };
 
+type Move = {
+  from: Vector;
+  to: Vector;
+};
 export default function Board({ G, moves, ctx }: BoardProps<G>) {
   const [focusedCell, setFocusedCell] = useState<Vector | null>(null);
   const validMoves = useMemo(() => {
@@ -49,10 +53,25 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
 
     return getValidMoves(focusedCell, G, ctx.currentPlayer);
   }, [focusedCell, G, ctx]);
-  const bestMove = useMemo(
-    () => getBestMove(G, ctx.currentPlayer as Team),
-    [G, ctx]
-  );
+
+  const [bestMove, setBestMove] = useState<{
+    move: Move | null;
+    depth: number;
+  }>({ move: null, depth: 0 });
+
+  useEffect(() => {
+    const worker = new MyWorker();
+    worker.postMessage({ G, currentPlayer: ctx.currentPlayer });
+
+    const listener = (e: { data: { move: Move | null; depth: number } }) => {
+      setBestMove(e.data);
+    };
+    worker.onmessage = listener;
+
+    return () => {
+      worker.terminate();
+    };
+  }, [G, ctx]);
 
   const tbody = [];
   for (let y = 0; y < 8; y++) {
@@ -107,7 +126,7 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
             ) : (
               <Box></Box>
             )}
-            {bestMove && vectorCompare(bestMove.from, { x, y }) ? (
+            {bestMove.move && vectorCompare(bestMove.move.from, { x, y }) ? (
               <StarIcon
                 position={"absolute"}
                 left={0}
@@ -130,7 +149,10 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
                   h={8}
                   borderRadius={"full"}
                   bg={
-                    bestMove && vectorCompare(bestMove.to, { x, y })
+                    bestMove.move &&
+                    focusedCell &&
+                    vectorCompare(focusedCell, bestMove.move.from) &&
+                    vectorCompare(bestMove.move.to, { x, y })
                       ? "yellow.500"
                       : "black"
                   }
@@ -147,7 +169,10 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
   }
 
   return (
-    <Center h="100vh">
+    <Center flexDir={"column"} h="100vh">
+      <Text position={"absolute"} top={3} left={3}>
+        Calculated: {bestMove.depth}
+      </Text>
       <Box position={"relative"}>
         <Fade in={!!ctx.gameover}>
           {ctx.gameover ? (
