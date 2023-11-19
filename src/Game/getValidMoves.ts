@@ -1,6 +1,11 @@
 import { Ctx } from "boardgame.io";
-import { Vector, vectorAdd } from "../util/vector";
+import { Vector } from "../util/vector";
 import { G } from "./game";
+import { getValidPawnMoves } from "./pieces/pawn";
+import { getValidBoatMoves } from "./pieces/boat";
+import { getValidKnightMoves } from "./pieces/knight";
+import { getValidBishopMoves } from "./pieces/bishop";
+import { getValidKingMoves } from "./pieces/king";
 
 export default function getValidMoves(
   cell: Vector,
@@ -13,33 +18,15 @@ export default function getValidMoves(
   if (focusedPiece.team !== ctx.currentPlayer) return [];
 
   switch (focusedPiece.type) {
-    case "T":
-      return [];
+    case "R":
+      return getValidBoatMoves(cell, state, ctx);
     case "N":
-      return [];
+      return getValidKnightMoves(cell, state, ctx);
     case "B":
-      return [];
+      return getValidBishopMoves(cell, state, ctx);
     case "K":
-      return [];
+      return getValidKingMoves(cell, state, ctx);
     case "P":
       return getValidPawnMoves(cell, state, ctx);
   }
-}
-
-function getValidPawnMoves(cell: Vector, state: G, ctx: Ctx): Vector[] {
-  const pawnDirections: { [key: string]: Vector } = {
-    "0": { x: 0, y: -1 },
-    "1": { x: 1, y: 0 },
-    "2": { x: 0, y: 1 },
-    "3": { x: -1, y: 0 },
-  };
-
-  const direction = pawnDirections[ctx.currentPlayer];
-  const forwardMove = vectorAdd(cell, direction);
-
-  const availableMoves: Vector[] = [];
-
-  if (state.cells[forwardMove.x][forwardMove.y] != null) return [];
-
-  return availableMoves;
 }
