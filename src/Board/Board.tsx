@@ -24,6 +24,8 @@ import Bishop from "../assets/pieces/bishop.svg?react";
 import King from "../assets/pieces/king.svg?react";
 import Pawn from "../assets/pieces/pawn.svg?react";
 import { Ctx } from "boardgame.io";
+import { getBestMove } from "../Game/minimax/score";
+import { StarIcon } from "@chakra-ui/icons";
 
 const teamColors = {
   "0": "red",
@@ -45,8 +47,12 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
   const validMoves = useMemo(() => {
     if (focusedCell == null) return [];
 
-    return getValidMoves(focusedCell, G, ctx);
+    return getValidMoves(focusedCell, G, ctx.currentPlayer);
   }, [focusedCell, G, ctx]);
+  const bestMove = useMemo(
+    () => getBestMove(G, ctx.currentPlayer as Team),
+    [G, ctx]
+  );
 
   const tbody = [];
   for (let y = 0; y < 8; y++) {
@@ -89,17 +95,28 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
                 : "gray.500"
               : undefined
           }
+          position={"relative"}
           p={0}
           key={id}
           onClick={onClickCell}
           borderWidth={1}
         >
-          <Center position={"relative"}>
+          <Center>
             {space ? (
               <Box>{space ? pieceToSVG[space.type] : undefined}</Box>
             ) : (
               <Box></Box>
             )}
+            {bestMove && vectorCompare(bestMove.from, { x, y }) ? (
+              <StarIcon
+                position={"absolute"}
+                left={0}
+                top={0}
+                color={"yellow.500"}
+                h={4}
+                w={4}
+              />
+            ) : null}
             {validMoves.some((move) => vectorCompare(move, { x, y })) ? (
               <Center
                 position={"absolute"}
@@ -112,7 +129,11 @@ export default function Board({ G, moves, ctx }: BoardProps<G>) {
                   w={8}
                   h={8}
                   borderRadius={"full"}
-                  bg="black"
+                  bg={
+                    bestMove && vectorCompare(bestMove.to, { x, y })
+                      ? "yellow.500"
+                      : "black"
+                  }
                   opacity={0.2}
                 ></Box>
               </Center>

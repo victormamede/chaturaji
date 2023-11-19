@@ -1,4 +1,4 @@
-import { Game, Move } from "boardgame.io";
+import { Game } from "boardgame.io";
 import { INVALID_MOVE } from "boardgame.io/core";
 import { Vector, vectorCompare } from "../util/vector";
 import getValidMoves from "./getValidMoves";
@@ -23,7 +23,6 @@ PPPP..PN
 RNBK..PR
 `
     .trim()
-    .replace(/P/g, ".")
     .replace(/(\r\n|\n|\r)/gm, ""),
 
   teams: `
@@ -57,9 +56,10 @@ export type G = {
   playerStates: {
     [team: string]: PlayerState;
   };
+  ended: boolean;
 };
 
-const piecePoints = {
+export const piecePoints = {
   R: 5,
   B: 5,
   N: 3,
@@ -67,17 +67,25 @@ const piecePoints = {
   P: 1,
 };
 
-const movePiece: Move<G> = ({ G, ctx }, from: Vector, to: Vector) => {
-  const validMoves = getValidMoves(from, G, ctx);
-
-  if (!validMoves.some((move) => vectorCompare(move, to))) return INVALID_MOVE;
+export const playMove = (
+  G: G,
+  currentPlayer: string,
+  from: Vector,
+  to: Vector,
+  validate: boolean = true
+) => {
+  if (validate) {
+    const validMoves = getValidMoves(from, G, currentPlayer);
+    if (!validMoves.some((move) => vectorCompare(move, to)))
+      return INVALID_MOVE;
+  }
 
   const targetCell = G.cells[to.x][to.y];
   if (targetCell != null) {
-    G.playerStates[ctx.currentPlayer].captures.push(targetCell);
+    G.playerStates[currentPlayer].captures.push(targetCell);
 
     if (G.playerStates[targetCell.team].alive) {
-      G.playerStates[ctx.currentPlayer].points += piecePoints[targetCell.type];
+      G.playerStates[currentPlayer].points += piecePoints[targetCell.type];
     }
 
     if (targetCell.type == "K") {
@@ -87,6 +95,26 @@ const movePiece: Move<G> = ({ G, ctx }, from: Vector, to: Vector) => {
 
   G.cells[to.x][to.y] = G.cells[from.x][from.y];
   G.cells[from.x][from.y] = null;
+  G.ended = gameEnded(G);
+};
+
+export const getNextPlayer = (G: G, currentPlayer: string) => {
+  const players = ["0", "1", "2", "3"];
+
+  let nextPos = (players.findIndex((v) => v === currentPlayer) + 1) % 4;
+  while (!G.playerStates[players[nextPos]].alive) {
+    nextPos = (nextPos + 1) % 4;
+  }
+
+  return { nextPos, nextPlayer: players[nextPos] as Team };
+};
+
+export const gameEnded = (G: G) => {
+  let deadPlayers = 0;
+  for (const playerState of Object.values(G.playerStates)) {
+    if (!playerState.alive) deadPlayers++;
+  }
+  return deadPlayers >= 3;
 };
 
 const game: Game<G> = {
@@ -118,6 +146,7 @@ const game: Game<G> = {
         "2": { captures: [], alive: true, points: 0 },
         "3": { captures: [], alive: true, points: 0 },
       },
+      ended: false,
     };
   },
 
@@ -130,32 +159,17 @@ const game: Game<G> = {
       first: () => 0,
 
       // Get the next value of playOrderPos at the end of each turn.
-      next: ({ G, ctx }) => {
-        const players = ["0", "1", "2", "3"];
-
-        let nextPos = (ctx.playOrderPos + 1) % ctx.numPlayers;
-        while (!G.playerStates[players[nextPos]].alive) {
-          nextPos = (nextPos + 1) % ctx.numPlayers;
-        }
-
-        return nextPos;
-      },
+      next: ({ G, ctx }) => getNextPlayer(G, ctx.currentPlayer).nextPos,
     },
   },
 
   moves: {
-    movePiece,
+    movePiece: ({ G, ctx }, from: Vector, to: Vector) =>
+      playMove(G, ctx.currentPlayer, from, to),
   },
 
   endIf: ({ G }) => {
-    let deadPlayers = 0;
-    for (const playerState of Object.values(G.playerStates)) {
-      if (!playerState.alive) deadPlayers++;
-    }
-    if (deadPlayers < 3) {
-      return;
-    }
-
+    if (!G.ended) return;
     const playerStates = Object.entries(G.playerStates);
     playerStates.sort((a, b) => b[1].points - a[1].points);
 

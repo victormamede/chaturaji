@@ -1,9 +1,12 @@
-import { Ctx } from "boardgame.io";
 import { Vector, vectorAdd } from "../../util/vector";
 import { G } from "../game";
 import { isInsideBoard } from "./util";
 
-export function getValidPawnMoves(cell: Vector, state: G, ctx: Ctx): Vector[] {
+export function getValidPawnMoves(
+  cell: Vector,
+  state: G,
+  currentPlayer: string
+): Vector[] {
   const pawnDirections: { [key: string]: Vector } = {
     "0": { x: 0, y: -1 },
     "1": { x: 1, y: 0 },
@@ -11,7 +14,7 @@ export function getValidPawnMoves(cell: Vector, state: G, ctx: Ctx): Vector[] {
     "3": { x: -1, y: 0 },
   };
 
-  const direction = pawnDirections[ctx.currentPlayer];
+  const direction = pawnDirections[currentPlayer];
   const forwardMove = vectorAdd(cell, direction);
 
   const availableMoves: Vector[] = [];
@@ -42,11 +45,11 @@ export function getValidPawnMoves(cell: Vector, state: G, ctx: Ctx): Vector[] {
     ],
   };
 
-  for (const diagonal of diagonals[ctx.currentPlayer]) {
+  for (const diagonal of diagonals[currentPlayer]) {
     const captureMove = vectorAdd(cell, diagonal);
     if (isInsideBoard(captureMove)) {
       const targetCell = state.cells[captureMove.x][captureMove.y];
-      if (targetCell != null && targetCell.team != ctx.currentPlayer)
+      if (targetCell != null && targetCell.team != currentPlayer)
         availableMoves.push(captureMove);
     }
   }

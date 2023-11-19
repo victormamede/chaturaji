@@ -1,4 +1,3 @@
-import { Ctx } from "boardgame.io";
 import { Vector, vectorAdd } from "../../util/vector";
 import { G } from "../game";
 import { isInsideBoard } from "./util";
@@ -6,7 +5,7 @@ import { isInsideBoard } from "./util";
 export function getValidBishopMoves(
   cell: Vector,
   state: G,
-  ctx: Ctx
+  currentPlayer: string
 ): Vector[] {
   const directions: Vector[] = [
     { x: -1, y: -1 },
@@ -23,7 +22,7 @@ export function getValidBishopMoves(
     while (isInsideBoard(currentCell)) {
       const currentCellValue = state.cells[currentCell.x][currentCell.y];
       if (currentCellValue != null) {
-        if (currentCellValue.team != ctx.currentPlayer) {
+        if (currentCellValue.team != currentPlayer) {
           availableMoves.push(currentCell);
         }
         break;

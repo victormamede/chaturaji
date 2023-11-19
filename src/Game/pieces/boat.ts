@@ -1,9 +1,12 @@
-import { Ctx } from "boardgame.io";
 import { Vector, vectorAdd } from "../../util/vector";
 import { G } from "../game";
 import { isInsideBoard } from "./util";
 
-export function getValidBoatMoves(cell: Vector, state: G, ctx: Ctx): Vector[] {
+export function getValidBoatMoves(
+  cell: Vector,
+  state: G,
+  currentPlayer: string
+): Vector[] {
   const directions: Vector[] = [
     { x: 0, y: -1 },
     { x: 1, y: 0 },
@@ -19,7 +22,7 @@ export function getValidBoatMoves(cell: Vector, state: G, ctx: Ctx): Vector[] {
     while (isInsideBoard(currentCell)) {
       const currentCellValue = state.cells[currentCell.x][currentCell.y];
       if (currentCellValue != null) {
-        if (currentCellValue.team != ctx.currentPlayer) {
+        if (currentCellValue.team != currentPlayer) {
           availableMoves.push(currentCell);
         }
         break;
