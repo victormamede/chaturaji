@@ -7,7 +7,7 @@ onmessage = (e) => {
 
   const tree = createTree(data.G, data.currentPlayer);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 5; i++) {
     growTree(tree);
     calculateBranchScore(tree, data.currentPlayer);
     postMessage({ move: getBestMove(tree), depth: i });
